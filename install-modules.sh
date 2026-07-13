@@ -14,11 +14,13 @@ set -euo pipefail
 # name  url  branch  (whitespace-separated; keep columns readable)
 MODULES=(
   "mod-branding            git@github.com:and-elf/mod-branding.git             master"
-  "mod-branded-bots        git@github.com:and-elf/mod-branded-bots.git         master"
   "mod-branded-mercenary   git@github.com:and-elf/mod-branded-mercenary.git    feat/fragment-branding-hire"
-  "mod-reforge             git@github.com:and-elf/mod-reforge.git              master"
-  "mod-cinematics          git@github.com:and-elf/mod-cinematics.git           main"
   "mod-dungeon-questgivers git@github.com:and-elf/mod-dungeon-questgivers.git  master"
+  # --- Disabled: no server adapter yet, so they break the worldserver link.
+  #     Re-enable each once it defines Addmod_<name>Scripts() and builds clean.
+  #   "mod-branded-bots        git@github.com:and-elf/mod-branded-bots.git         master"   # core+tests only; adapter pending (playerbots now available)
+  #   "mod-reforge             git@github.com:and-elf/mod-reforge.git              master"   # draft (#76)
+  #   "mod-cinematics          git@github.com:and-elf/mod-cinematics.git           main"     # multi-file API drift vs core
   "mod-learn-spells        https://github.com/azerothcore/mod-learn-spells.git  master"
   # External — MUST stay in lockstep with the playerbots CORE branch you build against.
   "mod-playerbots          https://github.com/liyunfan1223/mod-playerbots.git  master"
