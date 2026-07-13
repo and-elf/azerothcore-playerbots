@@ -22,6 +22,10 @@ MODULES=(
   "mod-learn-spells        https://github.com/azerothcore/mod-learn-spells.git  master"
   # External — MUST stay in lockstep with the playerbots CORE branch you build against.
   "mod-playerbots          https://github.com/liyunfan1223/mod-playerbots.git  master"
+  # Adopted upstream AzerothCore modules (used ~as-is; see README "Reference / adopted modules").
+  "mod-eluna               https://github.com/azerothcore/mod-eluna.git         master"
+  "mod-ah-bot              https://github.com/azerothcore/mod-ah-bot.git         master"
+  "mod-rdf-expansion       https://github.com/azerothcore/mod-rdf-expansion.git  master"
 )
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

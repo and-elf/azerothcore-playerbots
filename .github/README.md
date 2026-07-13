@@ -92,3 +92,52 @@ It's important to note that AzerothCore is not an official Blizzard Entertainmen
 [JetBrains](https://www.jetbrains.com/?from=AzerothCore) is providing free [open-source licenses](https://www.jetbrains.com/community/opensource/) to the AzerothCore developers.
 
 [![JetBrains logo.](https://resources.jetbrains.com/storage/products/company/brand/logos/jetbrains.svg)](https://jb.gg/OpenSourceSupport)
+
+---
+
+## This installation (and-elf)
+
+A fork of the [liyunfan1223 Playerbot core](https://github.com/liyunfan1223/azerothcore-wotlk) (branch `Playerbot`) plus one database-compatibility patch (MariaDB connector). Modules are **independent clones** under `modules/` (not submodules) — after cloning the core, run:
+
+```bash
+./install-modules.sh
+```
+
+to fetch every module below at its pinned branch. Build in the Debian container (`docker-compose` / `apps/docker`); host builds on newer toolchains need `-DNOJEM=1` (bundled jemalloc vs GCC 15).
+
+### Custom modules (this project)
+
+| Module | Purpose |
+|---|---|
+| [mod-branding](https://github.com/and-elf/mod-branding) | Per-school brand progression, effects, mastery, economy |
+| [mod-branded-bots](https://github.com/and-elf/mod-branded-bots) | Brand-carrying playerbot allies — proc-based (issue #89) |
+| [mod-branded-mercenary](https://github.com/and-elf/mod-branded-mercenary) | Hireable branded mercenary companions |
+| [mod-reforge](https://github.com/and-elf/mod-reforge) | Generic item reforge / re-itemization engine |
+| [mod-dungeon-questgivers](https://github.com/and-elf/mod-dungeon-questgivers) | Quest givers inside dungeons |
+| [mod-cinematics](https://github.com/and-elf/mod-cinematics) | Cinematic sequences |
+
+### Adopted upstream modules (used ~as-is)
+
+| Module | Why it's here |
+|---|---|
+| [mod-playerbots](https://github.com/liyunfan1223/mod-playerbots) | The bot population — requires this Playerbot core |
+| [mod-eluna](https://github.com/azerothcore/mod-eluna) | Lua scripting — rapid content/event prototyping (e.g. invasion auras, #75) before committing to C++ |
+| [mod-ah-bot](https://github.com/azerothcore/mod-ah-bot) | Seeds a living auction house — feeds the branding economy |
+| [mod-rdf-expansion](https://github.com/azerothcore/mod-rdf-expansion) | Higher-level chars can queue lower RDF — pairs with bot-populated dungeons (#89) |
+| [mod-learn-spells](https://github.com/azerothcore/mod-learn-spells) | Auto-learn class spells on level — QoL |
+
+### Reference / inspiration (studied, not adopted)
+
+| Module | Relevance to this install |
+|---|---|
+| [mod-autobalance](https://github.com/azerothcore/mod-autobalance) | Reference impl for bidirectional zone/creature scaling — mod-branding §2.1 (#69) |
+| [mod-zone-difficulty](https://github.com/azerothcore/mod-zone-difficulty) | Per-zone nerf/debuff model |
+| [mod-individual-progression](https://github.com/ZhengPeiRu21/mod-individual-progression) | Per-character content gating — informs branding proficiency gates |
+| [mod-progression-system](https://github.com/azerothcore/mod-progression-system) | ChromieCraft progression + boons — reference for #83 raid boon |
+| [mod-racial-trait-swap](https://github.com/azerothcore/mod-racial-trait-swap) | Racial-dependent mechanics — race-dependent branding (#52) |
+| [mod-solo-lfg](https://github.com/milestorme/mod-solo-lfg) | Solo dungeon-queue patterns |
+| [mod-ah-bot-plus](https://github.com/NathanHandley/mod-ah-bot-plus) | Feature-richer AH-bot alternative if the official falls short |
+| mod-npcbots (trickerer) | Alternative NPC-based bot backend — *verify canonical repo* |
+| cfbg / crossfaction | Cross-faction / factionless play (#66) — *see issue for candidates* |
+
+> Website is handled by the official **AzerothCore CMS** (`acore-cms`), not a module.
