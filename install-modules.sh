@@ -19,6 +19,7 @@ MODULES=(
   "mod-reforge             git@github.com:and-elf/mod-reforge.git              master"
   "mod-cinematics          git@github.com:and-elf/mod-cinematics.git           main"
   "mod-dungeon-questgivers git@github.com:and-elf/mod-dungeon-questgivers.git  master"
+  "mod-learn-spells        https://github.com/azerothcore/mod-learn-spells.git  master"
   # External — MUST stay in lockstep with the playerbots CORE branch you build against.
   "mod-playerbots          https://github.com/liyunfan1223/mod-playerbots.git  master"
 )
