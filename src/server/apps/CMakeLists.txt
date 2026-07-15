@@ -146,11 +146,24 @@ foreach(APPLICATION_NAME ${APPLICATIONS_BUILD_LIST})
     endif()
 
     # game is STATIC in this executable, so the script registry + ScriptMgr singleton live here.
-    # Export the executable's (default-visibility) symbols so dlopened dynamic modules interpose their
-    # weak duplicates onto ours and register into the one shared registry (else "... has no code").
-    # BUILD_SHARED_LIBS is ON exactly for dynamic (scripts or modules) builds.
+    # Export the executable's symbols so dynamically-loaded modules resolve them and register into the
+    # one shared registry (else "... has no code"). BUILD_SHARED_LIBS is ON exactly for dynamic
+    # (scripts or modules) builds.
     if (BUILD_SHARED_LIBS)
-      set(${APP_PROJECT_NAME}_LINK_FLAGS "-Wl,--export-dynamic ${${APP_PROJECT_NAME}_LINK_FLAGS}")
+      if (MSVC)
+        # MSVC has no --export-dynamic. Let CMake emit an import library + a .def exporting the
+        # executable's symbols (ENABLE_EXPORTS + WINDOWS_EXPORT_ALL_SYMBOLS) so a module .dll can bind
+        # to the core's ScriptMgr / script registry. See the note in the PR: WINDOWS_EXPORT_ALL_SYMBOLS
+        # exports functions only (not the inline ScriptRegistry<T> data statics) and PE has no ELF-style
+        # weak-symbol interposition, so full parity may require an explicit dllexport'd module API.
+        set_target_properties(${APP_PROJECT_NAME} PROPERTIES
+          ENABLE_EXPORTS ON
+          WINDOWS_EXPORT_ALL_SYMBOLS ON)
+      else()
+        # GCC/Clang: default visibility (set in the compiler settings for forced-dynamic builds) plus
+        # --export-dynamic lets dlopened modules interpose their weak duplicates onto ours.
+        set(${APP_PROJECT_NAME}_LINK_FLAGS "-Wl,--export-dynamic ${${APP_PROJECT_NAME}_LINK_FLAGS}")
+      endif()
     endif()
 
     set_target_properties(${APP_PROJECT_NAME} PROPERTIES LINK_FLAGS "${${APP_PROJECT_NAME}_LINK_FLAGS}")
