@@ -121,9 +121,17 @@ if(BUILD_SHARED_LIBS)
       INTERFACE
         -fPIC)
 
-    target_compile_options(acore-hidden-symbols-interface
-      INTERFACE
-        -fvisibility=hidden)
+    # NOTE (dynamic modules): -fvisibility=hidden keeps core symbols out of .dynsym, which means a
+    # dynamically-loaded module .so gets its OWN private copy of the header-inline ScriptRegistry<T>
+    # statics instead of sharing libgame's -- so its scripts register into a registry worldserver
+    # never reads ("... has no code"). This fork exports nothing via AC_*_API, so the practical way to
+    # make dynamic modules share the script registry is default visibility. Re-enable hidden only if
+    # you annotate the module-facing API and stop relying on symbol merging.
+    if(NOT WITH_DYNAMIC_LINKING_FORCED)
+        target_compile_options(acore-hidden-symbols-interface
+          INTERFACE
+            -fvisibility=hidden)
+    endif()
 
     # --no-undefined to throw errors when there are undefined symbols
     # (caused through missing ACORE_*_API macros).

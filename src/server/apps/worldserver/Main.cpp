@@ -53,10 +53,18 @@
 #include "WorldSessionMgr.h"
 #include "WorldSocket.h"
 #include "WorldSocketMgr.h"
+#include "Log.h"
+#include "revision.h"
 #include <boost/asio/signal_set.hpp>
 #include <boost/program_options.hpp>
+#include <algorithm>
 #include <csignal>
 #include <filesystem>
+#include <string_view>
+#include <vector>
+#if AC_PLATFORM != AC_PLATFORM_WINDOWS
+#include <dlfcn.h>
+#endif
 #include <iostream>
 #include <openssl/crypto.h>
 #include <openssl/opensslv.h>
@@ -115,6 +123,77 @@ AsyncAcceptor* StartRaSocketAcceptor(Acore::Asio::IoContext& ioContext);
 void ShutdownCLIThread(std::thread* cliThread);
 void WorldUpdateLoop();
 variables_map GetConsoleArguments(int argc, char** argv, fs::path& configFile, [[maybe_unused]] std::string& cfg_service);
+
+#if AC_PLATFORM != AC_PLATFORM_WINDOWS
+// Dynamic script modules (built with -DMODULE_<name>=dynamic) install as bin/scripts/libmod_*.so.
+// Unlike static modules (compiled into worldserver and registered via AddModulesScripts), these are
+// not linked in -- nothing loads them by default. Load them here: dlopen each and call its exported
+// AddModulesScripts, which registers its scripts into the shared ScriptMgr (the module links the same
+// libgame.so, so it is the same singleton). Handles are intentionally kept open for the process
+// lifetime; the ScriptMgr shutdown deletes the script objects (whose code lives in these libraries),
+// so they must outlive Unload. Editing one dynamic module then only rebuilds its .so -- no relink.
+namespace
+{
+    std::vector<void*> g_dynamicModuleHandles;
+
+    fs::path WorldserverDirectory()
+    {
+        std::error_code ec;
+        fs::path const exe = fs::read_symlink("/proc/self/exe", ec);
+        return ec ? fs::current_path() : exe.parent_path();
+    }
+
+    void LoadDynamicScriptModules()
+    {
+        fs::path const scriptsDir = WorldserverDirectory() / "scripts";
+        std::error_code ec;
+        if (!fs::is_directory(scriptsDir, ec))
+            return;
+
+        std::vector<fs::path> libraries;
+        for (auto const& entry : fs::directory_iterator(scriptsDir, ec))
+            if (entry.path().extension() == ".so")
+                libraries.push_back(entry.path());
+        std::sort(libraries.begin(), libraries.end());   // deterministic load order
+
+        for (fs::path const& library : libraries)
+        {
+            void* handle = dlopen(library.c_str(), RTLD_NOW | RTLD_GLOBAL);
+            if (!handle)
+            {
+                LOG_ERROR("server.loading", "Dynamic module '{}' failed to load: {}", library.filename().string(), dlerror());
+                continue;
+            }
+
+            // Reject an ABI-mismatched module (built for a different build type) rather than crash.
+            if (auto directive = reinterpret_cast<char const* (*)()>(dlsym(handle, "GetModulesBuildDirective")))
+            {
+                if (std::string_view(directive()) != AC_BUILD_TYPE)
+                {
+                    LOG_ERROR("server.loading", "Dynamic module '{}' build directive '{}' != core '{}' -- skipped.",
+                        library.filename().string(), directive(), AC_BUILD_TYPE);
+                    dlclose(handle);
+                    continue;
+                }
+            }
+
+            auto addScripts = reinterpret_cast<void (*)()>(dlsym(handle, "AddModulesScripts"));
+            if (!addScripts)
+            {
+                LOG_ERROR("server.loading", "Dynamic module '{}' has no AddModulesScripts entry -- skipped.", library.filename().string());
+                dlclose(handle);
+                continue;
+            }
+
+            addScripts();
+            g_dynamicModuleHandles.push_back(handle);
+
+            auto name = reinterpret_cast<char const* (*)()>(dlsym(handle, "GetScriptModule"));
+            LOG_INFO("server.loading", ">> Loaded dynamic module: {}", name ? name() : library.filename().string());
+        }
+    }
+}
+#endif
 
 /// Launch the Azeroth server
 int main(int argc, char** argv)
@@ -264,6 +343,12 @@ int main(int argc, char** argv)
 
     sScriptMgr->SetScriptLoader(AddScripts);
     sScriptMgr->SetModulesLoader(AddModulesScripts);
+
+#if AC_PLATFORM != AC_PLATFORM_WINDOWS
+    // Register scripts from dynamically-linked modules (bin/scripts/libmod_*.so) before Initialize
+    // activates the registries. Static modules still register via the AddModulesScripts callback above.
+    LoadDynamicScriptModules();
+#endif
 
     std::shared_ptr<void> sScriptMgrHandle(nullptr, [](void*)
     {

@@ -145,6 +145,14 @@ foreach(APPLICATION_NAME ${APPLICATIONS_BUILD_LIST})
       set(${APP_PROJECT_NAME}_LINK_FLAGS "-pthread -lncurses ${${APP_PROJECT_NAME}_LINK_FLAGS}")
     endif()
 
+    # game is STATIC in this executable, so the script registry + ScriptMgr singleton live here.
+    # Export the executable's (default-visibility) symbols so dlopened dynamic modules interpose their
+    # weak duplicates onto ours and register into the one shared registry (else "... has no code").
+    # BUILD_SHARED_LIBS is ON exactly for dynamic (scripts or modules) builds.
+    if (BUILD_SHARED_LIBS)
+      set(${APP_PROJECT_NAME}_LINK_FLAGS "-Wl,--export-dynamic ${${APP_PROJECT_NAME}_LINK_FLAGS}")
+    endif()
+
     set_target_properties(${APP_PROJECT_NAME} PROPERTIES LINK_FLAGS "${${APP_PROJECT_NAME}_LINK_FLAGS}")
 
     # Add all dynamic projects as dependency to the worldserver
