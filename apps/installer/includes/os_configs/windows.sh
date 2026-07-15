@@ -37,7 +37,10 @@ if [[ -n "$MYSQL_HOME" && -f "${MYSQL_HOME}lib/mysqlclient.lib" ]]; then
     echo "Using preinstalled MySQL at: ${MYSQL_HOME}"
     mkdir -p /c/tools/mysql
     rm -rf "/c/tools/mysql/current"
-    cmd //c mklink /J "C:\\tools\\mysql\\current" "$(cygpath -w "${MYSQL_HOME%/}")"
+    # Use PowerShell for the junction: Git Bash/MSYS mangles cmd's mklink switches
+    # (/J, //c) into paths. MSYS_NO_PATHCONV keeps the backslash args intact.
+    MSYS_NO_PATHCONV=1 powershell -NoProfile -Command \
+        "New-Item -ItemType Junction -Path 'C:\\tools\\mysql\\current' -Target '$(cygpath -w "${MYSQL_HOME%/}")' | Out-Null"
 else
     echo "No usable preinstalled MySQL found; falling back to the choco package."
     choco install -y --skip-checksums "${INSTALL_ARGS[@]}"  mysql --force
