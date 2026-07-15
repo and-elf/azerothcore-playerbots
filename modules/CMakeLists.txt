@@ -309,6 +309,25 @@ target_include_directories(modules
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${PUBLIC_INCLUDES})
 
+# --- Shared header-only interface library (mod-common) --------------------------------------------
+# mod-common (modules/mod-common) provides the brand taxonomy (Branding::BrandId) and the injected
+# IRng/IClock interfaces shared by the branding module family as dependency-free headers. Expose it
+# as an INTERFACE (header-only) target so consumers declare the dependency explicitly and it resolves
+# under DYNAMIC linkage, where each module gets only its own include dirs. Defined here -- before the
+# per-module .cmake hooks below -- so those hooks can link it. Header-only: it contributes include
+# paths and no objects, so static builds are byte-for-byte unchanged.
+if(EXISTS "${CMAKE_SOURCE_DIR}/modules/mod-common/src/branding/common/Brand.h")
+  if(NOT TARGET mod-common)
+    add_library(mod-common INTERFACE)
+    target_include_directories(mod-common
+      INTERFACE
+        "${CMAKE_SOURCE_DIR}/modules/mod-common/src")
+  endif()
+  # The static aggregate consumes it too, covering statically-linked consumers (e.g. mod-branded-bots
+  # stays static and still resolves Branding::BrandId through mod-common).
+  target_link_libraries(modules PUBLIC mod-common)
+endif()
+
 # Enables Devs to Include a cmake file in their module that will get run inline with the config.
 foreach(SOURCE_MODULE ${MODULES_MODULE_LIST})
 	include("${CMAKE_SOURCE_DIR}/modules/${SOURCE_MODULE}/${SOURCE_MODULE}.cmake" OPTIONAL)
