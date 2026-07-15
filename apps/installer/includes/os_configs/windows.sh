@@ -26,4 +26,19 @@ choco install -y --skip-checksums "${INSTALL_ARGS[@]}"  cmake.install -y --insta
 choco install -y --skip-checksums "${INSTALL_ARGS[@]}"  visualstudio2022-workload-nativedesktop
 choco install -y --skip-checksums "${INSTALL_ARGS[@]}"  openssl --force
 choco install -y --skip-checksums "${INSTALL_ARGS[@]}"  boost-msvc-14.3 --force --version=1.87.0
-choco install -y --skip-checksums "${INSTALL_ARGS[@]}"  mysql --force --version=8.4.6
+# MySQL: prefer the runner's preinstalled MySQL over the choco package. The choco
+# `mysql` package downloads its zip from Oracle's CDN, which keeps only the current
+# GA of each series, so any pinned version eventually 404s. GitHub's windows-2022
+# image ships MySQL (server install with include/ and lib/) under
+# "C:\Program Files\MySQL\MySQL Server X.Y"; junction it to the fixed, space-free
+# path the build expects (C:\tools\mysql\current) so no build flags need to change.
+MYSQL_HOME=$(ls -d "/c/Program Files/MySQL/MySQL Server "*/ 2>/dev/null | sort -V | tail -1)
+if [[ -n "$MYSQL_HOME" && -f "${MYSQL_HOME}lib/mysqlclient.lib" ]]; then
+    echo "Using preinstalled MySQL at: ${MYSQL_HOME}"
+    mkdir -p /c/tools/mysql
+    rm -rf "/c/tools/mysql/current"
+    cmd //c mklink /J "C:\\tools\\mysql\\current" "$(cygpath -w "${MYSQL_HOME%/}")"
+else
+    echo "No usable preinstalled MySQL found; falling back to the choco package."
+    choco install -y --skip-checksums "${INSTALL_ARGS[@]}"  mysql --force
+fi
