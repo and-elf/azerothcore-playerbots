@@ -13,6 +13,9 @@ set -euo pipefail
 
 # name  url  branch  (whitespace-separated; keep columns readable)
 MODULES=(
+  # Header-only shared library: brand taxonomy + injected interfaces consumed by the branding family.
+  # Clone it first so the modules that link it are present alongside it.
+  "mod-common              git@github.com:and-elf/mod-common.git               master"
   "mod-branding            git@github.com:and-elf/mod-branding.git             master"
   "mod-branded-bots        git@github.com:and-elf/mod-branded-bots.git         master"
   "mod-branded-mercenary   git@github.com:and-elf/mod-branded-mercenary.git    feat/fragment-branding-hire"

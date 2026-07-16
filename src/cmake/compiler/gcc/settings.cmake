@@ -61,9 +61,15 @@ if(BUILD_SHARED_LIBS)
       -fPIC
       -Wno-attributes)
 
-  target_compile_options(acore-hidden-symbols-interface
-    INTERFACE
-      -fvisibility=hidden)
+  # NOTE (dynamic modules): see the matching comment in clang/settings.cmake. -fvisibility=hidden
+  # stops a dynamically-loaded module .so from sharing libgame's header-inline ScriptRegistry<T>
+  # statics, so its scripts never register into worldserver's registry. This fork exports no AC_*_API,
+  # so forced-dynamic builds use default visibility to let the weak registry statics merge.
+  if(NOT WITH_DYNAMIC_LINKING_FORCED)
+    target_compile_options(acore-hidden-symbols-interface
+      INTERFACE
+        -fvisibility=hidden)
+  endif()
 
   # Should break the build when there are ACORE_*_API macros missing
   # but it complains about missing references in precompiled headers.
